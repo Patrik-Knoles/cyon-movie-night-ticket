@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "CYON Movie Night – Ticketing Page",
   description:
     "Join us for an unforgettable Movie Night experience with the Catholic Youth Organization of Nigeria (CYON) at St. Cyprian Catholic Church, Oko-Oba Agege.",
+  icons: {
+    icon: "/CYON-Logo.png",
+  },
   openGraph: {
     images: [
       {
