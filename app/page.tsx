@@ -6,6 +6,7 @@ import { TicketForm } from "@/components/ticket-form";
 import { SuccessMessage } from "@/components/success-message";
 import { CopyrightFooter } from "@/components/copyright-footer";
 
+
 export default function Home() {
   const [submitted, setSubmitted] = useState(false);
   const [ticketData, setTicketData] = useState<{

@@ -2,12 +2,14 @@
 
 import { Card } from "@/components/ui/card"
 import { CheckCircle2 } from "lucide-react"
+import { useState } from "react";
 
 interface SuccessMessageProps {
   data: { name: string; email: string } | null
 }
 
 export function SuccessMessage({ data }: SuccessMessageProps) {
+  const [visible, setVisible] = useState(true);
   return (
     <Card className="border-2 border-primary/20 shadow-lg">
       <div className="p-8 md:p-12 text-center">
