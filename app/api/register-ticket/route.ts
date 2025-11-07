@@ -1,23 +1,27 @@
-import { type NextRequest, NextResponse } from "next/server"
-import QRCode from "qrcode"
+import { type NextRequest, NextResponse } from "next/server";
+import QRCode from "qrcode";
 
 // In-memory store for registered emails and tokens (in production, use a database)
-const registeredEmails = new Set<string>()
-const sessionTokens = new Map<string, { email: string; expiresAt: number }>()
+const registeredEmails = new Set<string>();
+const sessionTokens = new Map<string, { email: string; expiresAt: number }>();
 
 // Generate a unique ticket ID
 function generateTicketId(): string {
-  return "CYON-" + Math.random().toString(36).substr(2, 9).toUpperCase()
+  return "CYON-" + Math.random().toString(36).substr(2, 9).toUpperCase();
 }
 
 // Generate a unique session token
 function generateSessionToken(): string {
-  return Math.random().toString(36).substr(2, 16)
+  return Math.random().toString(36).substr(2, 16);
 }
 
-async function generateQRCodeDataUrl(ticketId: string, attendeeName: string, attendeeEmail: string): Promise<string> {
+async function generateQRCodeDataUrl(
+  ticketId: string,
+  attendeeName: string,
+  attendeeEmail: string
+): Promise<string> {
   try {
-    const registrationData = `Ticket ID: ${ticketId}\nName: ${attendeeName}\nEmail: ${attendeeEmail}`
+    const registrationData = `Ticket ID: ${ticketId}\nName: ${attendeeName}\nEmail: ${attendeeEmail}`;
     const qrCodeDataUrl = await QRCode.toDataURL(registrationData, {
       width: 150,
       margin: 1,
@@ -25,11 +29,11 @@ async function generateQRCodeDataUrl(ticketId: string, attendeeName: string, att
         dark: "#23903a",
         light: "#ffffff",
       },
-    })
-    return qrCodeDataUrl
+    });
+    return qrCodeDataUrl;
   } catch (error) {
-    console.error("[v0] Error generating QR code:", error)
-    return ""
+    console.error("[v0] Error generating QR code:", error);
+    return "";
   }
 }
 
@@ -40,12 +44,17 @@ function generateTicketHTML(
   eventDate: string,
   eventTime: string,
   eventVenue: string,
-  qrCodeDataUrl: string,
+  qrCodeDataUrl: string
 ): string {
-  const parsedDate = new Date(eventDate)
+  const parsedDate = new Date(eventDate);
   const formattedDate = isNaN(parsedDate.getTime())
     ? eventDate
-    : parsedDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+    : parsedDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
 
   return `
     <!DOCTYPE html>
@@ -263,7 +272,7 @@ function generateTicketHTML(
       <body>
         <div class="email-container">
           <div class="ticket-header">
-            <img src="/images/design-mode/CYON-Logo.png" alt="CYON Logo">
+            <img src="https://cyon-movie-night.vercel.app/images/design-mode/CYON-Logo.png" alt="CYON Logo">
             <h1>MOVIE NIGHT</h1>
             <p>Catholic Youth Organization of Nigeria</p>
           </div>
@@ -287,15 +296,15 @@ function generateTicketHTML(
             
             <div class="detail-row">
               <span class="detail-label">Date:</span>
-              <span class="detail-value">&nbsp; ${formattedDate}</span>
+              <span class="detail-value">&nbsp;${formattedDate}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Time:</span>
-              <span class="detail-value">&nbsp; ${eventTime}</span>
+              <span class="detail-value">&nbsp;${eventTime}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Venue:</span>
-              <span class="detail-value">&nbsp; ${eventVenue}</span>
+              <span class="detail-value">&nbsp;${eventVenue}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Status:</span>
@@ -322,7 +331,7 @@ async function sendEmailWithFallback(
   html: string,
   resendApiKey: string,
   primarySender: string,
-  fallbackSender: string,
+  fallbackSender: string
 ): Promise<boolean> {
   // Try with primary sender first
   let response = await fetch("https://api.resend.com/emails", {
@@ -337,13 +346,18 @@ async function sendEmailWithFallback(
       subject,
       html,
     }),
-  })
+  });
 
   if (!response.ok) {
-    const errorData = await response.json()
+    const errorData = await response.json();
 
-    if (response.status === 403 && errorData.message?.includes("domain is not verified")) {
-      console.log(`[v0] Domain not verified, falling back to ${fallbackSender}`)
+    if (
+      response.status === 403 &&
+      errorData.message?.includes("domain is not verified")
+    ) {
+      console.log(
+        `[v0] Domain not verified, falling back to ${fallbackSender}`
+      );
 
       response = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -357,20 +371,20 @@ async function sendEmailWithFallback(
           subject,
           html,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const fallbackError = await response.json()
-        console.error("[v0] Failed to send email (fallback):", fallbackError)
-        return false
+        const fallbackError = await response.json();
+        console.error("[v0] Failed to send email (fallback):", fallbackError);
+        return false;
       }
     } else {
-      console.error("[v0] Failed to send email:", errorData)
-      return false
+      console.error("[v0] Failed to send email:", errorData);
+      return false;
     }
   }
 
-  return true
+  return true;
 }
 
 async function sendTicketEmail(
@@ -380,26 +394,38 @@ async function sendTicketEmail(
   eventTheme: string,
   eventDate: string,
   eventTime: string,
-  eventVenue: string,
+  eventVenue: string
 ): Promise<boolean> {
-  const resendApiKey = process.env.RESEND_API_KEY
-  const adminEmail = process.env.ADMIN_EMAIL || "tinnievisuals@gmail.com"
-  const primarySender = "email@patricktheassistant.com"
-  const fallbackSender = "onboarding@resend.dev"
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const adminEmail = process.env.ADMIN_EMAIL || "tinnievisuals@gmail.com";
+  const primarySender = "email@patricktheassistant.com";
+  const fallbackSender = "onboarding@resend.dev";
 
   // If Resend is not configured, log a message (for demo purposes)
   if (!resendApiKey) {
-    console.log("[DEMO] Email would be sent to attendee:", attendeeEmail)
-    console.log("[DEMO] Email would be sent to admin:", adminEmail)
-    console.log("[DEMO] Attendee name:", name)
-    console.log("[DEMO] Ticket ID:", ticketId)
-    return true
+    console.log("[DEMO] Email would be sent to attendee:", attendeeEmail);
+    console.log("[DEMO] Email would be sent to admin:", adminEmail);
+    console.log("[DEMO] Attendee name:", name);
+    console.log("[DEMO] Ticket ID:", ticketId);
+    return true;
   }
 
   try {
-    const qrCodeDataUrl = await generateQRCodeDataUrl(ticketId, name, attendeeEmail)
+    const qrCodeDataUrl = await generateQRCodeDataUrl(
+      ticketId,
+      name,
+      attendeeEmail
+    );
 
-    const htmlContent = generateTicketHTML(name, ticketId, eventTheme, eventDate, eventTime, eventVenue, qrCodeDataUrl)
+    const htmlContent = generateTicketHTML(
+      name,
+      ticketId,
+      eventTheme,
+      eventDate,
+      eventTime,
+      eventVenue,
+      qrCodeDataUrl
+    );
 
     const success = await sendEmailWithFallback(
       attendeeEmail,
@@ -407,14 +433,14 @@ async function sendTicketEmail(
       htmlContent,
       resendApiKey,
       primarySender,
-      fallbackSender,
-    )
+      fallbackSender
+    );
 
     if (!success) {
-      return false
+      return false;
     }
 
-    console.log("[v0] Ticket email sent successfully")
+    console.log("[v0] Ticket email sent successfully");
 
     const adminSuccess = await sendEmailWithFallback(
       adminEmail,
@@ -434,63 +460,82 @@ async function sendTicketEmail(
       `,
       resendApiKey,
       primarySender,
-      fallbackSender,
-    )
+      fallbackSender
+    );
 
     if (!adminSuccess) {
-      return false
+      return false;
     }
 
-    console.log("[v0] Admin notification sent successfully")
-    return true
+    console.log("[v0] Admin notification sent successfully");
+    return true;
   } catch (error) {
-    console.error("[v0] Error sending email:", error)
-    return false
+    console.error("[v0] Error sending email:", error);
+    return false;
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, sessionToken } = await request.json()
+    const { name, email, sessionToken } = await request.json();
 
     if (registeredEmails.has(email.toLowerCase())) {
-      return NextResponse.json({ error: "This email has already been registered" }, { status: 409 })
+      return NextResponse.json(
+        { error: "This email has already been registered" },
+        { status: 409 }
+      );
     }
 
     if (sessionToken) {
-      const tokenData = sessionTokens.get(sessionToken)
+      const tokenData = sessionTokens.get(sessionToken);
       if (!tokenData || tokenData.expiresAt < Date.now()) {
         return NextResponse.json(
-          { error: "Registration window has expired. Please refresh to start over." },
-          { status: 401 },
-        )
+          {
+            error:
+              "Registration window has expired. Please refresh to start over.",
+          },
+          { status: 401 }
+        );
       }
     }
 
     if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 })
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const eventTheme = process.env.EVENT_THEME || "CYON Movie Night"
-    const eventDate = process.env.EVENT_DATE || "2025-11-21"
-    const eventTime = process.env.EVENT_TIME || "18:00"
-    const eventVenue = process.env.EVENT_VENUE || "New Church Hall, St. Cyprian Catholic Church, Oko-Oba Agege"
+    const eventTheme = process.env.EVENT_THEME || "CYON Movie Night";
+    const eventDate = process.env.EVENT_DATE || "2025-11-21";
+    const eventTime = process.env.EVENT_TIME || "18:00";
+    const eventVenue =
+      process.env.EVENT_VENUE ||
+      "New Church Hall, St. Cyprian Catholic Church, Oko-Oba Agege";
 
     // Generate ticket ID
-    const ticketId = generateTicketId()
+    const ticketId = generateTicketId();
 
     // Send emails with ticket
-    const emailSent = await sendTicketEmail(email, name, ticketId, eventTheme, eventDate, eventTime, eventVenue)
+    const emailSent = await sendTicketEmail(
+      email,
+      name,
+      ticketId,
+      eventTheme,
+      eventDate,
+      eventTime,
+      eventVenue
+    );
 
     if (!emailSent) {
-      return NextResponse.json({ error: "Failed to send ticket email" }, { status: 500 })
+      return NextResponse.json(
+        { error: "Failed to send ticket email" },
+        { status: 500 }
+      );
     }
 
-    registeredEmails.add(email.toLowerCase())
+    registeredEmails.add(email.toLowerCase());
 
     return NextResponse.json(
       {
@@ -498,31 +543,37 @@ export async function POST(request: NextRequest) {
         message: "Ticket registered and email sent",
         ticketId,
       },
-      { status: 200 },
-    )
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("[v0] Error in register-ticket:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("[v0] Error in register-ticket:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const token = generateSessionToken()
-    const expiresAt = Date.now() + 3 * 60 * 1000 // 3 minutes
+    const token = generateSessionToken();
+    const expiresAt = Date.now() + 3 * 60 * 1000; // 3 minutes
 
-    sessionTokens.set(token, { email: "", expiresAt })
+    sessionTokens.set(token, { email: "", expiresAt });
 
     // Clean up expired tokens
     for (const [key, value] of sessionTokens.entries()) {
       if (value.expiresAt < Date.now()) {
-        sessionTokens.delete(key)
+        sessionTokens.delete(key);
       }
     }
 
-    return NextResponse.json({ token, expiresAt })
+    return NextResponse.json({ token, expiresAt });
   } catch (error) {
-    console.error("[v0] Error generating token:", error)
-    return NextResponse.json({ error: "Failed to generate token" }, { status: 500 })
+    console.error("[v0] Error generating token:", error);
+    return NextResponse.json(
+      { error: "Failed to generate token" },
+      { status: 500 }
+    );
   }
 }
